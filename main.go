@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/line/line-bot-sdk-go/linebot"
 	"gopkg.in/gin-gonic/gin.v1"
 )
 
 func main() {
-	// port := os.Getenv("PORT")
-	port := "9000"
+	port := os.Getenv("PORT")
+	// port := "9000"
 
 	if port == "" {
 		log.Fatal("$PORT must be set")
