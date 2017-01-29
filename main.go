@@ -93,8 +93,8 @@ func main() {
 
 						}
 					}
-					_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(message.Text)).Do()
-					if err != nil { log.Print(err) }
+					// _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(message.Text)).Do()
+					// if err != nil { log.Print(err) }
 
 				}
 			}
