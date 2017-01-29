@@ -32,8 +32,7 @@ func main() {
 		bot, err := linebot.New(
 			os.Getenv("CHANNEL_SECRET"),
 			os.Getenv("CHANNEL_TOKEN"),
-			linebot.WithHTTPClient(client)
-		)
+			linebot.WithHTTPClient(client))
 		if err != nil {
 				fmt.Println(err)
 				return
