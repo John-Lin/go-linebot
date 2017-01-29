@@ -80,7 +80,8 @@ func main() {
 									_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("沒有這個外匯代號")).Do()
 									if err != nil { log.Print(err) }
 								} else {
-									result := time.Unix(r.Timestamp, 0).String() + "\n" + FloatToString(r.Quotes["USD" + code])
+									// result := time.Unix(r.Timestamp, 0).String() + "\n" + FloatToString(r.Quotes["USD" + code])
+									result := "USD/" + code + "  " + FloatToString(r.Quotes["USD" + code])
 									_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(result)).Do()
 									if err != nil { log.Print(err) }
 								}
