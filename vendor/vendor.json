@@ -75,5 +75,8 @@
 			"revisionTime": "2017-01-25T14:37:19Z"
 		}
 	],
-	"rootPath": "go-linebot"
+	"rootPath": "go-linebot",
+  "heroku": {
+		"goVersion": "go1.7.5"
+	}
 }
