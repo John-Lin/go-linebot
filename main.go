@@ -43,9 +43,11 @@ func main() {
 
 		if err != nil {
 			if err == linebot.ErrInvalidSignature {
-				w.WriteHeader(400)
+				fmt.Println(err)
+				c.AbortWithError(400, err)
 			} else {
-				w.WriteHeader(500)
+				fmt.Println(err)
+				c.AbortWithError(500, err)
 			}
 			return
 		}
