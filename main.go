@@ -34,7 +34,6 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 
-
 	router.GET("/ping", func(c *gin.Context) {
 		c.String(http.StatusOK, "PONG")
 	})
@@ -70,31 +69,27 @@ func main() {
 				case *linebot.TextMessage:
 					log.Printf("User ID is %v\n", event.Source.UserID)
 
-					if strings.HasPrefix(message.Text, "/") {
-						if IsLetter(message.Text[1:4]) {
-							r := convertCurrency()
-							if r.Success == true {
-								code := strings.ToUpper(message.Text[1:4])
+					if (strings.HasPrefix(message.Text, "/") && IsLetter(message.Text[1:4])) {
+						r := convertCurrency()
+						if r.Success == true {
+							code := strings.ToUpper(message.Text[1:4])
 
-								if r.Quotes["USD" + code] == 0 {
-									_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("沒有這個外匯代號")).Do()
-									if err != nil { log.Print(err) }
-								} else {
-									// result := time.Unix(r.Timestamp, 0).String() + "\n" + FloatToString(r.Quotes["USD" + code])
-									result := "USD/" + code + "  " + FloatToString(r.Quotes["USD" + code])
-									_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(result)).Do()
-									if err != nil { log.Print(err) }
-								}
-							} else {
-								_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Service Unreachable!")).Do()
+							if r.Quotes["USD" + code] == 0 {
+								_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("沒有這個外匯代號")).Do()
 								if err != nil { log.Print(err) }
-								log.Printf("Service Unreachable!")
+							} else {
+								// result := time.Unix(r.Timestamp, 0).String() + "\n" + FloatToString(r.Quotes["USD" + code])
+								result := "USD/" + code + "  " + FloatToString(r.Quotes["USD" + code])
+								_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(result)).Do()
+								if err != nil { log.Print(err) }
 							}
 
+						} else {
+							_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Service Unreachable!")).Do()
+							if err != nil { log.Print(err) }
+							log.Printf("Service Unreachable!")
 						}
 					}
-					// _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(message.Text)).Do()
-					// if err != nil { log.Print(err) }
 
 				}
 			}
