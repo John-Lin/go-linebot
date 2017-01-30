@@ -15,15 +15,15 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 )
 
-type Response struct {
-  // The right side is the name of the JSON variable
-	Success       bool                 `json:"success"`
-	Timestamp     int64                `json:"timestamp"`
-	Source        string               `json:"source"`
-	Quotes        map[string]float64   `json:"quotes"`
-}
-
 func main() {
+	app, err := NewCurrencyBot(
+		os.Getenv("CHANNEL_SECRET"),
+		os.Getenv("CHANNEL_TOKEN"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	port := os.Getenv("PORT")
 	// port := "9000"
 
@@ -39,18 +39,7 @@ func main() {
 	})
 
 	router.POST("/callback", func(c *gin.Context) {
-		client := &http.Client{Timeout: time.Duration(15 * time.Second)}
-
-		bot, err := linebot.New(
-			os.Getenv("CHANNEL_SECRET"),
-			os.Getenv("CHANNEL_TOKEN"),
-			linebot.WithHTTPClient(client))
-		if err != nil {
-				fmt.Println(err)
-				return
-		}
-
-		events, err := bot.ParseRequest(c.Request)
+		events, err := app.bot.ParseRequest(c.Request)
 
 		if err != nil {
 			if err == linebot.ErrInvalidSignature {
@@ -64,42 +53,80 @@ func main() {
 		}
 
 		for _, event := range events {
-			if event.Type == linebot.EventTypeMessage {
-				switch message := event.Message.(type) {
-				case *linebot.TextMessage:
-					log.Printf("User ID is %v\n", event.Source.UserID)
+			switch event.Type {
+				case linebot.EventTypeMessage:
+					switch message := event.Message.(type) {
+						case *linebot.TextMessage:
+							log.Printf("User ID is %v\n", event.Source.UserID)
 
-					if (strings.HasPrefix(message.Text, "/") && IsLetter(message.Text[1:4])) {
-						r := convertCurrency()
-						if r.Success == true {
-							code := strings.ToUpper(message.Text[1:4])
+							if (strings.HasPrefix(message.Text, "/") && IsLetter(message.Text[1:4])) {
+								r := app.convertCurrency()
+								if r.Success == true {
+									code := strings.ToUpper(message.Text[1:4])
 
-							if r.Quotes["USD" + code] == 0 {
-								_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("沒有這個外匯代號")).Do()
-								if err != nil { log.Print(err) }
-							} else {
-								// result := time.Unix(r.Timestamp, 0).String() + "\n" + FloatToString(r.Quotes["USD" + code])
-								result := "USD/" + code + "  " + FloatToString(r.Quotes["USD" + code])
-								_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(result)).Do()
-								if err != nil { log.Print(err) }
+									if r.Quotes["USD" + code] == 0 {
+										if err := app.replyText(event.ReplyToken, "沒有這個外匯代號"); err != nil {
+											log.Print(err)
+										}
+									} else {
+										// result := time.Unix(r.Timestamp, 0).String() + "\n" + FloatToString(r.Quotes["USD" + code])
+                    result := "USD/" + code + "  " + FloatToString(r.Quotes["USD" + code])
+										if err := app.replyText(event.ReplyToken, result); err != nil {
+											log.Print(err)
+										}
+									}
+
+								} else {
+									if err := app.replyText(event.ReplyToken, "Service Unreachable!"); err != nil {
+										log.Print(err)
+									}
+									log.Printf("Service Unreachable!")
+								}
 							}
 
-						} else {
-							_, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Service Unreachable!")).Do()
-							if err != nil { log.Print(err) }
-							log.Printf("Service Unreachable!")
-						}
+						default:
+							log.Printf("Unknown message: %v", message)
 					}
-
-				}
+				default:
+					log.Printf("Unknown event: %v", event)
 			}
+
 		}
 	})
 
 	router.Run(":" + port)
 }
 
-func convertCurrency() *Response {
+// CurrencyBot app
+type CurrencyBot struct {
+	bot *linebot.Client
+}
+
+type Response struct {
+  // The right side is the name of the JSON variable
+	Success       bool                 `json:"success"`
+	Timestamp     int64                `json:"timestamp"`
+	Source        string               `json:"source"`
+	Quotes        map[string]float64   `json:"quotes"`
+}
+
+// NewCurrencyBot function
+func NewCurrencyBot(channelSecret, channelToken string) (*CurrencyBot, error) {
+	client := &http.Client{Timeout: time.Duration(15 * time.Second)}
+	bot, err := linebot.New(
+		channelSecret,
+		channelToken,
+		linebot.WithHTTPClient(client),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CurrencyBot{bot: bot}, nil
+}
+
+
+func (app *CurrencyBot) convertCurrency() *Response {
 	var (
 		queryString  string
 		apiKey       string
@@ -111,7 +138,7 @@ func convertCurrency() *Response {
 
 	apiKey = os.Getenv("currencylayerAPIKey")
 
-	// Euro by default. Setting the base parameter in your request.
+	// Setting the base parameter in your request.
 	queryString = "?access_key=" + apiKey + "&source=USD&format=1"
 
 	// Use api.fixer.io to get a JSON response
@@ -137,6 +164,17 @@ func convertCurrency() *Response {
 
 	// Everything accessible in struct now
 	return &resp
+}
+
+
+func (app *CurrencyBot) replyText(replyToken, text string) error {
+	if _, err := app.bot.ReplyMessage(
+		replyToken,
+		linebot.NewTextMessage(text),
+	).Do(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func IsLetter(s string) bool {
