@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -58,30 +58,24 @@ func main() {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
 					log.Printf("User ID is %v\n", event.Source.UserID)
-
-					if strings.HasPrefix(message.Text, "/") && IsLetter(message.Text[1:4]) {
-						r := app.convertCurrency()
-						if r.Success == true {
-							code := strings.ToUpper(message.Text[1:4])
-
-							if r.Quotes["USD"+code] == 0 {
-								if err := app.replyText(event.ReplyToken, "沒有這個外匯代號"); err != nil {
-									log.Print(err)
-								}
-							} else {
-								// result := time.Unix(r.Timestamp, 0).String() + "\n" + FloatToString(r.Quotes["USD" + code])
-								result := "USD/" + code + "  " + FloatToString(r.Quotes["USD"+code])
-								if err := app.replyText(event.ReplyToken, result); err != nil {
-									log.Print(err)
-								}
-							}
-
-						} else {
-							if err := app.replyText(event.ReplyToken, "Service Unreachable!"); err != nil {
+					match, _ := regexp.MatchString("([a-zA-Z]+)/([a-zA-Z]+)", message.Text)
+					if match == true {
+						r, _ := regexp.Compile("([a-zA-Z]+)/([a-zA-Z]+)")
+						res := r.FindAllStringSubmatch(message.Text, -1)
+						sourceCurrencySymbol := res[0][1]
+						targetCurrencySymbol := res[0][2]
+						convertResult := app.convertCurrency()
+						if convertResult.Success == true {
+							sourceCurrencyQuote := convertResult.Quotes["USD"+sourceCurrencySymbol]
+							targetCurrencyQuote := convertResult.Quotes["USD"+targetCurrencySymbol]
+							calculatedQuote := targetCurrencyQuote / sourceCurrencyQuote
+							result := sourceCurrencySymbol + "/" + targetCurrencySymbol + "  " + FloatToString(calculatedQuote)
+							if err := app.replyText(event.ReplyToken, result); err != nil {
 								log.Print(err)
 							}
-							log.Printf("Service Unreachable!")
 						}
+					} else {
+						// ignore
 					}
 
 				default:
@@ -173,15 +167,6 @@ func (app *CurrencyBot) replyText(replyToken, text string) error {
 		return err
 	}
 	return nil
-}
-
-func IsLetter(s string) bool {
-	for _, r := range s {
-		if (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') {
-			return false
-		}
-	}
-	return true
 }
 
 func FloatToString(f float64) string {
