@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -62,8 +63,8 @@ func main() {
 					if match == true {
 						r, _ := regexp.Compile("([a-zA-Z]+)/([a-zA-Z]+)")
 						res := r.FindAllStringSubmatch(message.Text, -1)
-						sourceCurrencySymbol := res[0][1]
-						targetCurrencySymbol := res[0][2]
+						sourceCurrencySymbol := strings.ToUpper(res[0][1])
+						targetCurrencySymbol := strings.ToUpper(res[0][2])
 						convertResult := app.convertCurrency()
 						if convertResult.Success == true {
 							sourceCurrencyQuote := convertResult.Quotes["USD"+sourceCurrencySymbol]
