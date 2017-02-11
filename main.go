@@ -172,5 +172,5 @@ func (app *CurrencyBot) replyText(replyToken, text string) error {
 
 func FloatToString(f float64) string {
 	// to convert a float number to a string
-	return strconv.FormatFloat(f, 'f', 3, 64)
+	return strconv.FormatFloat(f, 'f', -1, 64)
 }
