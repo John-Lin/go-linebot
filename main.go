@@ -72,7 +72,7 @@ func main() {
 							sourceCurrencyQuote := convertResult.Quotes["USD"+sourceCurrencySymbol]
 							targetCurrencyQuote := convertResult.Quotes["USD"+targetCurrencySymbol]
 
-							if checkValidCurrency(sourceCurrencyQuote) && checkValidCurrency(targetCurrencyQuote) == true {
+							if checkValidCurrency(sourceCurrencyQuote) && checkValidCurrency(targetCurrencyQuote) != true {
 								if err := app.replyText(event.ReplyToken, "查無此匯率代號"); err != nil {
 									log.Print(err)
 								}
@@ -87,9 +87,9 @@ func main() {
 						}
 					} else {
 						// Not match! Might input a invalid currency symbol
-						if err := app.replyText(event.ReplyToken, "匯率代號輸入錯誤"); err != nil {
-							log.Print(err)
-						}
+						// if err := app.replyText(event.ReplyToken, "匯率代號輸入錯誤"); err != nil {
+						// 	log.Print(err)
+						// }
 					}
 
 				default:
