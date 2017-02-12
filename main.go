@@ -59,24 +59,37 @@ func main() {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
 					log.Printf("User ID is %v\n", event.Source.UserID)
-					match, _ := regexp.MatchString("([a-zA-Z]+)/([a-zA-Z]+)", message.Text)
+					match, _ := regexp.MatchString("([a-zA-Z]{3})/([a-zA-Z]{3})", message.Text)
+
 					if match == true {
-						r, _ := regexp.Compile("([a-zA-Z]+)/([a-zA-Z]+)")
+						r, _ := regexp.Compile("([a-zA-Z]{3})/([a-zA-Z]{3})")
 						res := r.FindAllStringSubmatch(message.Text, -1)
 						sourceCurrencySymbol := strings.ToUpper(res[0][1])
 						targetCurrencySymbol := strings.ToUpper(res[0][2])
 						convertResult := app.convertCurrency()
+
 						if convertResult.Success == true {
 							sourceCurrencyQuote := convertResult.Quotes["USD"+sourceCurrencySymbol]
 							targetCurrencyQuote := convertResult.Quotes["USD"+targetCurrencySymbol]
+
+							if checkValidCurrency(sourceCurrencyQuote) && checkValidCurrency(targetCurrencyQuote) == true {
+								if err := app.replyText(event.ReplyToken, "查無此匯率代號"); err != nil {
+									log.Print(err)
+								}
+							}
+
 							calculatedQuote := targetCurrencyQuote / sourceCurrencyQuote
 							result := sourceCurrencySymbol + "/" + targetCurrencySymbol + "  " + FloatToString(calculatedQuote)
+
 							if err := app.replyText(event.ReplyToken, result); err != nil {
 								log.Print(err)
 							}
 						}
 					} else {
-						// ignore
+						// Not match! Might input a invalid currency symbol
+						if err := app.replyText(event.ReplyToken, "匯率代號輸入錯誤"); err != nil {
+							log.Print(err)
+						}
 					}
 
 				default:
@@ -172,5 +185,12 @@ func (app *CurrencyBot) replyText(replyToken, text string) error {
 
 func FloatToString(f float64) string {
 	// to convert a float number to a string
-	return strconv.FormatFloat(f, 'f', -1, 64)
+	return strconv.FormatFloat(f, 'f', 5, 64)
+}
+
+func checkValidCurrency(f float64) bool {
+	if f != 0 {
+		return true
+	}
+	return false
 }
